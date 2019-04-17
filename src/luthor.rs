@@ -1,6 +1,8 @@
 //lets write a lexer for zod
 //the first version is just a clone of 'Monkey' from the writing an interpreter in Go.
 //I'm doing it in rust and pretending that go is pseudo code.
+use std::error::Error;
+use std::iter::Peekable;
 #[derive(Debug, PartialEq)]
 enum Operator {
     Plus,
@@ -12,22 +14,16 @@ enum Operator {
     Nop,
 }
 
-impl From<String> for Operator {
-    fn from(s: String) -> Self {
-        let ass = String::from("=");
-        let eq = String::from("==");
-        let pl = String::from("+");
-        let min = String::from("-");
-        let mult = String::from("*");
-        let div = String::from("/");
-
+impl From<&str> for Operator {
+    fn from(s: &str) -> Self {
         let t = match s {
-            ass => Operator::Assignment,
-            pl => Operator::Plus,
-            min => Operator::Minus,
-            mult => Operator::Mult,
-            div => Operator::Div,
-            eq => Operator::Equals,
+            "=" => Operator::Assignment,
+            "+" => Operator::Plus,
+            "-" => Operator::Minus,
+            "*" => Operator::Mult,
+            "/" => Operator::Div,
+            "==" => Operator::Equals,
+            _ => Operator::Nop, //i don't like this.
         };
 
         t
@@ -56,10 +52,60 @@ impl From<String> for Token {
     }
 }
 
+struct Lexer {
+    input: String,
+    position: i32,
+    read_position: usize,
+    ch: Option<u8>,
+}
+
+impl Lexer {
+    fn new(input: &str) -> Self {
+        Lexer {
+            input: String::from(input),
+            position: 0,
+            read_position: 0,
+            ch: None,
+        }
+    }
+
+    fn read_char(&mut self) {
+        if self.read_position >= self.input.len() {
+            self.ch = None;
+        } else {
+            self.ch = Some(self.input.as_bytes()[self.read_position]);
+        }
+    }
+
+    //maybe an iterator over chars is a better idea.
+}
+
 struct TokenInfo {
     Data: String,
     LineNo: Option<u32>,
 }
+
+fn parse_number<I>(tokens: &mut Peekable<I>) -> String
+where
+    I: Iterator<Item = char>,
+{
+    //let mut n = 0;
+    let mut tok = String::new();
+    loop {
+        match tokens.peek() {
+            Some(r) if r.is_digit(10) => {
+                tok.push_str(&r.to_string());
+                //n = n + r;
+                //n = n * 10 + r.to_digit(10).unwrap();
+                //println!("peeking: {}", n);
+            }
+            _ => return tok,
+        }
+
+        tokens.next();
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -75,15 +121,17 @@ mod tests {
 
     #[test]
     fn from_string_operator() {
-        let op = String::from("=");
-        let tk = Token::Op(Operator::from(op));
+        let tk = Token::Op(Operator::from("="));
 
-        assert_eq!(Token::Op(Operator::from(String::from("="))), tk);
+        assert_eq!(Token::Op(Operator::from("=")), tk);
     }
 
     #[test]
     fn next_token() {
         let input = "=+(){},;";
+        let mut lex = Lexer::new(input);
+        let c1 = lex.read_char();
+        assert_eq!(1, 1);
     }
 
     #[test]
