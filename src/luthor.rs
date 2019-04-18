@@ -86,10 +86,29 @@ impl Lexer {
         }
     }
 
+    fn read_identifier(&mut self) -> String {
+        let position = self.position;
+
+        let mut ident = String::from_utf8(vec![self.ch.unwrap()]).unwrap();
+
+        while self.is_letter() {
+            self.read_char();
+            ident.push(self.ch.unwrap() as char);
+        }
+
+        ident
+    }
+
+    fn is_letter(&mut self) -> bool {
+        let ch = self.ch.unwrap() as char;
+        ch.is_alphabetic()
+    }
+
     fn next_token(&mut self) -> Token {
-        //let char = String::from_utf8(vec![self.ch.unwrap()]).unwrap();
-        //let chref = char.as_ref();
-        let curr_char = self.ch.unwrap() as char;
+        let curr_char = match self.ch {
+            Some(ch) => ch as char,
+            None => ';',
+        };
 
         let tok = match curr_char {
             '=' => Token::Assignment,
@@ -103,16 +122,21 @@ impl Lexer {
             ')' => Token::RParen,
             ',' => Token::Comma,
             ';' => Token::SemiColon,
-            'a'...'z' | 'A'...'Z' | '_' => {
-                //is we a letter? maybe keyword, maybe identifier.
-                //an identifier or a keyword.
-                Token::Identifier(String::from("a_var"))
+            n if n.is_alphabetic() => {
+                let ident = self.read_identifier();
+                Token::Identifier(ident)
             }
+            //            'a'...'z' | 'A'...'Z' | '_' => {
+            ////               //is we a letter? maybe keyword, maybe identifier.
+            //an identifier or a keyword.
+            //             self.read_identifier();
+            //            Token::Identifier(String::from("a_var"))
+            //       }
             _ => Token::EOF,
         };
 
         self.read_char();
-
+        //println!("in next_token: {:?}", tok);
         tok
     }
 
@@ -158,10 +182,15 @@ mod tests {
         ";
 
         let mut lex = Lexer::new(input);
-        lex.read_char();
-        let r = lex.ch.unwrap();
+        let tok = lex.next_token();
+        println!("Token : {:?}", tok);
 
-        assert_eq!('l', r as char);
+        let tok = lex.next_token();
+        println!("Token : {:?}", tok);
+
+        let tok = lex.next_token();
+        println!("Token : {:?}", tok);
+        assert_eq!(1, 1);
     }
 
 }
