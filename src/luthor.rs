@@ -3,58 +3,65 @@
 //I'm doing it in rust and pretending that go is pseudo code.
 use std::error::Error;
 use std::iter::Peekable;
+
+struct TokenInfo {
+    Type: String,
+    Data: String,
+    LineNo: Option<u32>,
+    Column: Option<u32>,
+}
+
 #[derive(Debug, PartialEq)]
-enum Operator {
+enum Token {
+    Let,
     Plus,
     Minus,
     Mult,
     Div,
     Equals,
     Assignment,
-    Nop,
-}
-
-impl From<&str> for Operator {
-    fn from(s: &str) -> Self {
-        let t = match s {
-            "=" => Operator::Assignment,
-            "+" => Operator::Plus,
-            "-" => Operator::Minus,
-            "*" => Operator::Mult,
-            "/" => Operator::Div,
-            "==" => Operator::Equals,
-            _ => Operator::Nop, //i don't like this.
-        };
-
-        t
-    }
-}
-#[derive(Debug, PartialEq)]
-enum Token {
-    Let,
     Identifier(String),
     Int(i32),
-    Op(Operator),
-    Terminator,
+    SemiColon,
     LParen,
     RParen,
-    Comma,
     LBrace,
     RBrace,
+    Comma,
     Illegal,
-
     EOF,
 }
 
-impl From<String> for Token {
-    fn from(s: String) -> Self {
-        Token::Identifier(s)
+impl From<char> for Token {
+    fn from(c: char) -> Self {
+        let tok = match c {
+            '=' => Token::Assignment,
+            '+' => Token::Plus,
+            '-' => Token::Minus,
+            '*' => Token::Mult,
+            '/' => Token::Div,
+            '{' => Token::LBrace,
+            '}' => Token::RBrace,
+            '(' => Token::LParen,
+            ')' => Token::RParen,
+            ',' => Token::Comma,
+            ';' => Token::SemiColon,
+            'a'...'z' | 'A'...'Z' | '_' => {
+                //is we a letter? maybe keyword, maybe identifier.
+                //an identifier or a keyword.
+                Token::Identifier(String::from("a_var"))
+            }
+            _ => Token::EOF,
+        };
+
+        tok
     }
 }
 
+#[derive(Debug, PartialEq)]
 struct Lexer {
     input: String,
-    position: i32,
+    position: usize,
     read_position: usize,
     ch: Option<u8>,
 }
@@ -74,15 +81,42 @@ impl Lexer {
             self.ch = None;
         } else {
             self.ch = Some(self.input.as_bytes()[self.read_position]);
+            self.position = self.read_position;
+            self.read_position = self.read_position + 1;
         }
     }
 
-    //maybe an iterator over chars is a better idea.
-}
+    fn next_token(&mut self) -> Token {
+        //let char = String::from_utf8(vec![self.ch.unwrap()]).unwrap();
+        //let chref = char.as_ref();
+        let curr_char = self.ch.unwrap() as char;
 
-struct TokenInfo {
-    Data: String,
-    LineNo: Option<u32>,
+        let tok = match curr_char {
+            '=' => Token::Assignment,
+            '+' => Token::Plus,
+            '-' => Token::Minus,
+            '*' => Token::Mult,
+            '/' => Token::Div,
+            '{' => Token::LBrace,
+            '}' => Token::RBrace,
+            '(' => Token::LParen,
+            ')' => Token::RParen,
+            ',' => Token::Comma,
+            ';' => Token::SemiColon,
+            'a'...'z' | 'A'...'Z' | '_' => {
+                //is we a letter? maybe keyword, maybe identifier.
+                //an identifier or a keyword.
+                Token::Identifier(String::from("a_var"))
+            }
+            _ => Token::EOF,
+        };
+
+        self.read_char();
+
+        tok
+    }
+
+    //maybe an iterator over chars is a better idea.
 }
 
 fn parse_number<I>(tokens: &mut Peekable<I>) -> String
@@ -110,47 +144,24 @@ where
 mod tests {
 
     use super::*;
-    #[test]
-    fn from_string_ident() {
-        let id = String::from("my_var");
-
-        let tk = Token::from(id);
-
-        assert_eq!(Token::Identifier(String::from("my_var")), tk);
-    }
-
-    #[test]
-    fn from_string_operator() {
-        let tk = Token::Op(Operator::from("="));
-
-        assert_eq!(Token::Op(Operator::from("=")), tk);
-    }
 
     #[test]
     fn next_token() {
-        let input = "=+(){},;";
-        let mut lex = Lexer::new(input);
-        let c1 = lex.read_char();
-        assert_eq!(1, 1);
-    }
-
-    #[test]
-    fn check_operator() {
-        let ass = Operator::Assignment;
-        let pl = Operator::Plus;
-        let tok = Token::Op(ass);
-
-        let x = match tok {
-            Token::Op(t) => {
-                println!("I have a token : {:?}", t);
-                t
-            }
-
-            _ => {
-                println!("I have nothing");
-                Operator::Nop
-            }
+        let input = "let five = 5;
+        let ten = 10;
+        
+        let add = fn(x,y) {
+            x +y;    
         };
+       
+        let result = add(five,ten);
+        ";
+
+        let mut lex = Lexer::new(input);
+        lex.read_char();
+        let r = lex.ch.unwrap();
+
+        assert_eq!('l', r as char);
     }
 
 }
